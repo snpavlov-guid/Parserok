@@ -116,6 +116,35 @@ namespace Tests
 
         }
 
+        [TestCase("path:foo AND ext=rar", 2)]
+        [TestCase("path:foo AND ext=rar OR author^\"Dima K.\"", 3)]
+        [TestCase("(path:foo) OR (ext=rar)", 2)]
+        [TestCase("(path:foo) OR (ext=rar)", 2)]
+        [TestCase("(path:foo) OR ext=rar", 2)]
+        [TestCase("(path:foo AND modified=22.05.2019) OR (ext=rar AND author^\"Dima K.\")", 2)]
+        [TestCase("(path:foo AND modified=22.05.2019) OR dir^doc AND (ext=rar AND author^\"Dima K.\")", 3)]
+        public void ExpressionWithLogicTest(string text, int nexp)
+        {
+            var expr = ExprParser.Parse(text);
+
+            Assert.IsNotNull(expr);
+            Assert.AreEqual(nexp, expr.ExprEntries.Count);
+
+        }
+
+        [TestCase("((()))")]
+        [TestCase("((())) ((()))")]
+        [TestCase("((())) || ((()))")]
+        [TestCase("path:foo AND (modified=22.05.2019 OR (dir^doc))")]
+        [TestCase("(path:foo AND (modified=22.05.2019 OR (dir^doc))) OR (ext=rar AND ( author^\"Dima K.\" OR (dir^mir)))")]
+        public void DeepNestedLogicTest(string text)
+        {
+            var expr = ExprParser.Parse(text);
+
+            Assert.IsNotNull(expr);
+
+        }
+
 
     }
 }

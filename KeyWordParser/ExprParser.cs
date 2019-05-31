@@ -11,11 +11,11 @@ namespace KeyWordParser
         {
             var nodes = new GraphNode[0];
 
-            var startGraph = new GraphNode("OpenGroup", Expectation.Whitespace, Expectation.EntryLogic, Expectation.OpenGroup, Expectation.Keyword);
+            var startGraph = new GraphNode("StartGroup", Expectation.Whitespace, Expectation.EntryLogic, Expectation.OpenGroup, Expectation.Keyword, Expectation.CloseGroup);
 
             //var unaryLogic = new GraphNode("EntryLogic", Expectation.Whitespace, Expectation.OpenGroup, Expectation.Keyword);
 
-            //var joinLogic = new GraphNode("JoinLogic", Expectation.Whitespace, Expectation.EntryLogic, Expectation.Keyword);
+            var joinLogic = new GraphNode("JoinLogic", Expectation.Whitespace, Expectation.JoinLogic, Expectation.OpenGroup, Expectation.Keyword);
 
             var exprKeyword = new GraphNode("Keyword", Expectation.Whitespace, Expectation.Keyword, Expectation.CloseGroup);
 
@@ -27,9 +27,15 @@ namespace KeyWordParser
 
 
             startGraph[Expectation.Whitespace].Link = () => (startGraph, PassWhitespace);
-            startGraph[Expectation.OpenGroup].Link =  () => (exprKeyword, OpenGroup);
+            startGraph[Expectation.OpenGroup].Link =  () => (startGraph, OpenGroup);
+            startGraph[Expectation.CloseGroup].Link = () => (exprPost, CloseGroup);
             startGraph[Expectation.EntryLogic].Link = () => (startGraph, ReadEntryLogic);
             startGraph[Expectation.Keyword].Link = () => (exprOperator, ReadKeword);
+
+            joinLogic[Expectation.Whitespace].Link = () => (joinLogic, PassWhitespace);
+            joinLogic[Expectation.JoinLogic].Link = () => (startGraph, ReadJoinLogic);
+            joinLogic[Expectation.OpenGroup].Link = () => (exprKeyword, OpenGroup);
+            joinLogic[Expectation.Keyword].Link = () => (exprOperator, ReadKeword);
 
             exprKeyword[Expectation.Whitespace].Link = () => (exprKeyword, PassWhitespace);
             exprKeyword[Expectation.Keyword].Link = () => (exprOperator, ReadKeword);
@@ -42,13 +48,13 @@ namespace KeyWordParser
             exprValue[Expectation.NotBlank].Link = () => (exprPost, ReadValue);
 
             exprPost[Expectation.Whitespace].Link = () => (exprPost, PassWhitespace);
-            exprPost[Expectation.Keyword].Link = () => (exprOperator, ReadKeword);
             exprPost[Expectation.JoinLogic].Link = () => (startGraph, ReadJoinLogic);
-            exprPost[Expectation.OpenGroup].Link = () => (exprKeyword, OpenGroup);
-            exprPost[Expectation.CloseGroup].Link = () => (startGraph, CloseGroup);
+            exprPost[Expectation.Keyword].Link = () => (exprOperator, ReadKeword);
+            exprPost[Expectation.OpenGroup].Link = () => (startGraph, OpenGroup);
+            exprPost[Expectation.CloseGroup].Link = () => (exprPost, CloseGroup);
 
 
-            return new[] { startGraph, exprKeyword, exprOperator, exprValue, exprPost };
+            return new[] { startGraph, exprKeyword, exprOperator, exprValue, exprPost, joinLogic };
         }
 
         const char OpenGrp = '(';
@@ -134,6 +140,7 @@ namespace KeyWordParser
             int pos, string source, ExprLogic currectGrp)
         {
             var res = false;
+            var startPos = pos;
 
             foreach (var key in logicDict.Keys)
             {
@@ -152,11 +159,22 @@ namespace KeyWordParser
                 if (string.IsNullOrEmpty(logop)) continue;
 
                 if (entry) currectGrp.ActiveExpr.EntryLogic = key;
-                else currectGrp.ActiveExpr.JoinLogic = key;
+                else currectGrp.ActiveEntry.JoinLogic = key;
 
                 pos += logop.Length;
                 res = true;
                 break;
+            }
+
+            if (res)
+            {
+                //if (startPos > 0 && !char.IsWhiteSpace(source[startPos-1]))
+                //    throw new KeywordParserException($"The space must precede the logical operator. Expected space in the the position {startPos + 1}");
+
+                //if (!char.IsWhiteSpace(source[pos]))
+
+                if (char.IsLetter(source[pos]))
+                    throw new KeywordParserException($"A logical operator must be followed by a space. Expected space in the the position {pos + 1}");
             }
 
             return (res, pos, currectGrp);
@@ -206,7 +224,7 @@ namespace KeyWordParser
                     }
                     else if (IsStopSymbol(x))
                     {
-                        if (handleEscaped(x)) break;
+                        break;
                     }
                     else
                     {

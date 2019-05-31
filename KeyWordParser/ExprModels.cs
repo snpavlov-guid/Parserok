@@ -57,7 +57,7 @@ namespace KeyWordParser
 
         public override string ToString()
         {
-            return $"{Keyword} {Operator} <{Value}>";
+            return $"{Keyword} {Operator} <{Value}> {JoinLogic}";
         }
 
     }
@@ -65,14 +65,14 @@ namespace KeyWordParser
 
     public class ExprLogic : ExprEntryBase
     {
-        public string Logic { get; set; }
-
         public List<ExprEntryBase> ExprEntries { get; set; }
 
         public override bool IsLogic => true;
         public override bool IsExpression => false;
 
         public ExprEntry ActiveExpr { get { return ExprEntries.Any() ? (ExprEntry)ExprEntries.Last(p => p is ExprEntry) : null;  } }
+
+        public ExprEntryBase ActiveEntry { get { return ExprEntries.Any() ? ExprEntries.Last() : null; } }
 
         public ExprEntryBase AddEntry(ExprEntryBase entry)
         {
@@ -84,14 +84,14 @@ namespace KeyWordParser
             return (ExprLogic)AddEntry(group);
         }
 
-        public static ExprLogic CreateGroup(ExprLogic parent, string logic = "and")
+        public static ExprLogic CreateGroup(ExprLogic parent)
         {
-           return new ExprLogic() { Parent = parent, Logic = logic, ExprEntries = new List<ExprEntryBase>() };
+           return new ExprLogic() { Parent = parent, ExprEntries = new List<ExprEntryBase>() };
         }
 
         public override string ToString()
         {
-            return $"{Logic} Items:{ExprEntries.Count}";
+            return $"Items:{ExprEntries.Count} {JoinLogic}";
         }
 
 
