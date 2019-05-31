@@ -35,6 +35,8 @@ namespace KeyWordParser
 
         public Logic JoinLogic { get; set; }
 
+        public Logic ChildEntryLogic { get; set; }
+
         public abstract bool IsLogic { get; }
 
         public abstract bool IsExpression { get; }
@@ -52,12 +54,15 @@ namespace KeyWordParser
 
         public static ExprEntry Create(ExprLogic parent, string keyword = "")
         {
-            return new ExprEntry() { Parent = parent, Keyword = keyword, Operator=Operator.Nop, Value="" };
+            return new ExprEntry() { Parent = parent, Keyword = keyword, EntryLogic = parent.ChildEntryLogic, Operator=Operator.Nop, Value="" };
         }
 
         public override string ToString()
         {
-            return $"{Keyword} {Operator} <{Value}> {JoinLogic}";
+            var els = EntryLogic != Logic.None ? $"[{EntryLogic}]" : "";
+            var jls = JoinLogic != Logic.None ? $"[{JoinLogic}]" : "";
+
+            return $"{els} {Keyword} {Operator} <{Value}> {jls}";
         }
 
     }
@@ -86,12 +91,19 @@ namespace KeyWordParser
 
         public static ExprLogic CreateGroup(ExprLogic parent)
         {
-           return new ExprLogic() { Parent = parent, ExprEntries = new List<ExprEntryBase>() };
+            return new ExprLogic() {
+                Parent = parent,
+                EntryLogic = parent != null ? parent.ChildEntryLogic : Logic.None,
+                ExprEntries = new List<ExprEntryBase>()
+            };
         }
 
         public override string ToString()
         {
-            return $"Items:{ExprEntries.Count} {JoinLogic}";
+            var els = EntryLogic != Logic.None ? $"[{EntryLogic}]" : "";
+            var jls = JoinLogic != Logic.None ? $"[{JoinLogic}]" : "";
+
+            return $"{els} Count:{ExprEntries.Count} {jls}";
         }
 
 

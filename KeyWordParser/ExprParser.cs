@@ -13,8 +13,6 @@ namespace KeyWordParser
 
             var startGraph = new GraphNode("StartGroup", Expectation.Whitespace, Expectation.EntryLogic, Expectation.OpenGroup, Expectation.Keyword, Expectation.CloseGroup);
 
-            //var unaryLogic = new GraphNode("EntryLogic", Expectation.Whitespace, Expectation.OpenGroup, Expectation.Keyword);
-
             var joinLogic = new GraphNode("JoinLogic", Expectation.Whitespace, Expectation.JoinLogic, Expectation.OpenGroup, Expectation.Keyword);
 
             var exprKeyword = new GraphNode("Keyword", Expectation.Whitespace, Expectation.Keyword, Expectation.CloseGroup);
@@ -64,6 +62,9 @@ namespace KeyWordParser
 
         static bool IsStopSymbol(char x) => StopSymbols.Contains(x);
 
+        static bool IsKeywordFirstSymbol(char x) => char.IsLetter(x);
+
+
         #region Lexem handling
 
         static (bool, int, ExprLogic) PassWhitespace(int pos, string source, ExprLogic currectGrp)
@@ -79,9 +80,17 @@ namespace KeyWordParser
         {
             // open group
             var res = false;
+            ExprLogic newGroup = null;
             if (source[pos] == OpenGrp) { pos++;  res = true; }
 
-            return (res, pos, res ? currectGrp.AddGroup(ExprLogic.CreateGroup(currectGrp)) : currectGrp);
+            if (res)
+            {
+                newGroup = currectGrp.AddGroup(ExprLogic.CreateGroup(currectGrp));
+
+                currectGrp.ChildEntryLogic = Logic.None;
+            }
+
+            return (res, pos, res ? newGroup : currectGrp);
         }
 
         static (bool, int, ExprLogic) CloseGroup(int pos, string source, ExprLogic currectGrp)
@@ -104,15 +113,21 @@ namespace KeyWordParser
             var x = source[pos];
             var sb = new StringBuilder();
 
-            if (!char.IsLetter(x)) return (false, pos, currectGrp);
+            if (!IsKeywordFirstSymbol(x)) return (false, pos, currectGrp);
 
-            while (pos < source.Length && char.IsLetterOrDigit(x))
+            while (char.IsLetterOrDigit(x))
             {
                 sb.Append(x);
-                x = source[++pos];
+
+                pos++;
+
+                if (pos < source.Length) x = source[pos]; else break;
+
             }
 
             currectGrp.ExprEntries.Add(ExprEntry.Create(currectGrp, sb.ToString()));
+
+            currectGrp.ChildEntryLogic = Logic.None;
 
             return (true, pos, currectGrp);
         }
@@ -158,7 +173,7 @@ namespace KeyWordParser
 
                 if (string.IsNullOrEmpty(logop)) continue;
 
-                if (entry) currectGrp.ActiveExpr.EntryLogic = key;
+                if (entry) currectGrp.ChildEntryLogic = key;
                 else currectGrp.ActiveEntry.JoinLogic = key;
 
                 pos += logop.Length;
@@ -171,9 +186,7 @@ namespace KeyWordParser
                 //if (startPos > 0 && !char.IsWhiteSpace(source[startPos-1]))
                 //    throw new KeywordParserException($"The space must precede the logical operator. Expected space in the the position {startPos + 1}");
 
-                //if (!char.IsWhiteSpace(source[pos]))
-
-                if (char.IsLetter(source[pos]))
+                if (pos < source.Length && IsKeywordFirstSymbol(source[pos]))
                     throw new KeywordParserException($"A logical operator must be followed by a space. Expected space in the the position {pos + 1}");
             }
 

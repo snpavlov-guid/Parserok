@@ -145,6 +145,31 @@ namespace Tests
 
         }
 
+        [TestCase("!(!(!()))")]
+        [TestCase("NOT path:foo")]
+        [TestCase("!(path:foo)")]
+        [TestCase("!(path:foo OR dir^doc)")]
+        [TestCase("path:foo OR NOT dir^doc")]
+        [TestCase("NOT path:foo OR ext=rar AND NOT dir^doc")]
+        [TestCase("path:foo AND !(NOT modified=22.05.2019 OR !(NOT dir$doc))")]
+        public void EntryLogicTest(string text)
+        {
+            var expr = ExprParser.Parse(text);
+
+            Assert.IsNotNull(expr);
+
+        }
+
+        [TestCase("NOT")]
+        [TestCase("Keypass")]
+        [TestCase("NOT Keypass")]
+        public void MissingCasesTest(string text)
+        {
+            var expr = ExprParser.Parse(text);
+
+            Assert.IsNotNull(expr);
+
+        }
 
     }
 }

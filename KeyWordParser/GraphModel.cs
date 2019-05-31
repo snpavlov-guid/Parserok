@@ -21,8 +21,6 @@ namespace KeyWordParser
 
     }
 
-
-
     public delegate (bool, int, ExprLogic) GraphHandler(int pos, string source, ExprLogic exprLogic);
 
     public static class GraphMeta
